@@ -26,7 +26,7 @@ class Tree:
             self.left.VisitNode()
         if(self.right != None):
             self.right.VisitNode()
-
+	#中序遍历二叉树
     def MVisitTree(self): 
         if(self.left != None):
             self.left.MVisitTree()
@@ -34,7 +34,8 @@ class Tree:
         if(self.right != None):
             self.right.MVisitTree()
 
-    def GetPoint(self, dec):
+    #获取二叉树的第dec个节点
+	def GetPoint(self, dec):
         road = str(bin(dec))[3:]
         p = self
         for r in road:
@@ -45,7 +46,7 @@ class Tree:
         #print('p.val = ', p.val)
         return p    
 
-    #堆排序
+    #构建第一个堆
     def BuildHeadTree(self, List):
         for val in List:
             #print('val = ', val, 'self.counter = ', self.counter)
@@ -58,26 +59,26 @@ class Tree:
                 temp = self.counter + 1
                 node = Tree(val)
                 node.father = self.ponit
-                if(temp % 2 == 0):
+                if(temp % 2 == 0):#新增节点为左孩子
                     self.ponit.left = node
                 else:
                     self.ponit.right = node
                 while(temp != 0):
-                    if (node.val < node.father.val):
-                        p = node.father
+                    if (node.val < node.father.val):#如果新增节点比其父亲节点值要大
+                        p = node.father#先将其三个链子保存起来
                         LeftTemp = node.left
                         RightTemp = node.right
-                        if (p.father != p):
-                            if (int(temp / 2) % 2 == 0):
+                        if (p.father != p):#判断其不是头结点
+                            if (int(temp / 2) % 2 == 0):#新增节点的父亲为左孩子
                                 p.father.left = node
                             else:
                                 p.father.right = node
                             node.father = p.father
                         else:
-                            node.father = node
+                            node.father = node#是头结点则将其father连向自身
                             node.counter = self.counter
                             self = node 
-                        if(temp % 2 == 0):
+                        if(temp % 2 == 0):#新增节点为左孩子
                             node.left = p
                             node.right = p.right
                             if (p.right != None):
@@ -98,7 +99,8 @@ class Tree:
                         break;
             self.counter += 1
         return self
-
+	
+	#将头结点取出后重新调整堆
     def Adjust(self):
         #print('FrontSelfTree = ')
         #self.VisitNode()
@@ -115,14 +117,14 @@ class Tree:
             p.father.right = None
         #print('self.left = ', self.left.val)
         #print('self.right = ', self.right.val)
-        p.father = p                      
+        p.father = p#将二叉树最后一个叶子节点移到头结点                      
         p.left = self.left
         p.right = self.right
         while(1):#优化是万恶之源
             LeftTemp = p.left
             RightTemp = p.right
             FatherTemp = p.father
-            if (p.left != None and p.right !=None):
+            if (p.left != None and p.right !=None):#判断此时正在处理的结点的左后孩子情况
                 if (p.left.val < p.right.val):
                     next = p.left
                 else:
@@ -138,7 +140,7 @@ class Tree:
             p.left = next.left
             p.right = next.right
             p.father = next
-            if (next.left != None):
+            if (next.left != None):#之后就是一系列的交换节点的链的处理
                 next.left.father = p
             if (next.right != None):
                 next.right.father = p
