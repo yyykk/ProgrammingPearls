@@ -1,0 +1,220 @@
+C51 COMPILER V6.23a  AD0809                                                                03/27/2017 21:15:48 PAGE 1   
+
+
+C51 COMPILER V6.23a, COMPILATION OF MODULE AD0809
+OBJECT MODULE PLACED IN ..\..\..\ad0809.obj
+COMPILER INVOKED BY: D:\dvcc58b\dvcc58\58B(51)\C51\BIN\C51.EXE ad0809.c BROWSE DEBUG OBJECTEXTEND OBJECT(..\..\..\ad0809
+                    -.obj) 
+
+stmt level    source
+
+   1          /*NET 51实验5: ad0809数模转换 应用实验*/
+   2          #include <ABSACC.H>
+   3          #include<8279.h>
+   4          #include <intrins.h>
+   5          #define AD0809 XBYTE[0X8000]
+   6          #define DA0832 XBYTE[0x9000]
+   7          #define  uchar unsigned char /*宏定义*/
+   8          #define  uint  unsigned int
+   9          #define  ZLG7290  0x70    /*端口位定义*/
+  10          char EndFlag = 0;
+  11          
+  12          bit ack;                 /*应答标志位*/   
+  13          sbit SDA=P3^1;            /*模拟I2C数据传送位*/
+  14          sbit SCL=P3^0;            /*模拟I2C时钟控制位*/  
+  15          sbit Pdd=P1^2; 
+  16          sbit KEYINT=P1^0;             /*状态标志*/
+  17          unsigned counter = 0;
+  18          unsigned KeyManageFlag = 0;
+  19          unsigned char SLA,SUBA,NUMBYTE,MTD[1],MRD[1],i,k;    //SLA器件从地址，SUBA器件子地址
+  20          unsigned char mybuffer[8];
+  21          unsigned char End[2], Start[2];
+  22          unsigned int f = 0;
+  23                                   
+  24          void InitDISP(){
+  25   1               mybuffer[7]=0;
+  26   1               mybuffer[6]=0;
+  27   1               mybuffer[5]=0;
+  28   1               mybuffer[4]=0;
+  29   1               mybuffer[3]=0;
+  30   1               mybuffer[2]=0x0f;
+  31   1      }
+  32          
+  33          
+  34          void InitDISP0(){
+  35   1               mybuffer[7]=0;
+  36   1               mybuffer[6]=0;
+  37   1               mybuffer[5]=0;
+  38   1               mybuffer[4]=0;
+  39   1               mybuffer[3]=0;
+  40   1               mybuffer[2]=0;
+  41   1      }
+  42          
+  43          void InitClock(){
+  44   1              TMOD = 0x10;
+  45   1              TH0 = (8192-4607)/32;
+  46   1              TL0 = (8192-4607)%32;
+  47   1              ET0 = 1;
+  48   1              TR0 = 1;
+  49   1      }
+  50          
+  51          void InitClock1(){
+  52   1              TMOD = 0x10;
+  53   1              TH1 = 0;
+  54   1              TL1 = 0;
+C51 COMPILER V6.23a  AD0809                                                                03/27/2017 21:15:48 PAGE 2   
+
+  55   1              ET1 = 1;
+  56   1              TR1 = 0;
+  57   1      }
+  58          
+  59          void KeyManage(){
+  60   1              char i;
+  61   1              char keyval;
+  62   1              InitDISP0();
+  63   1              disp8279();     
+  64   1              for(i = 7; i >= 2; ){
+  65   2                      delay(10);
+  66   2                      keyval = getkey();
+  67   2                      if(keyval != 16){
+  68   3                              mybuffer[i] = keyval;
+  69   3                              i--;
+  70   3                              disp8279();
+  71   3                      }
+  72   2              }
+  73   1              End[0] = mybuffer[7];
+  74   1              End[1] = mybuffer[6];
+  75   1              Start[0] = mybuffer[5];
+  76   1              Start[1] = mybuffer[4];
+  77   1      }
+  78          
+  79          unsigned char ADDA(){
+  80   1                 unsigned char k;
+  81   1                 AD0809=0;
+  82   1                 delay(10);
+  83   1                 k=AD0809;
+  84   1                 if(k >= 0xA0){
+  85   2                         TR1 = 1;
+  86   2                         f = 0x2B0 * (0xFF - k);
+  87   2      
+  88   2                 }else{
+  89   2                         TR1 = 0;
+  90   2                         Pdd = 1;
+  91   2                 }
+  92   1                 if(EndFlag == 0){
+  93   2                     if(mybuffer[2] != 0x0F){
+  94   3                             DA0832 = 0x80 + mybuffer[2] * 12;
+  95   3                     }else if(k>=0x80){
+  96   3                             DA0832=k;
+  97   3                         }else{
+  98   3                             DA0832=0x80;
+  99   3                         }
+ 100   2                 }else{
+ 101   2                     DA0832 = 0x80;
+ 102   2                 }
+ 103   1                 return k;
+ 104   1      }
+ 105          
+ 106          void main(void)
+ 107          {
+ 108   1      
+ 109   1        IE=0xFF;
+ 110   1        init8279();
+ 111   1        InitDISP();
+ 112   1        InitClock1();
+ 113   1        disp8279();
+ 114   1       while(1)           
+ 115   1        {
+ 116   2         if(KeyManageFlag == 0){
+C51 COMPILER V6.23a  AD0809                                                                03/27/2017 21:15:48 PAGE 3   
+
+ 117   3             unsigned char k = ADDA();
+ 118   3                 mybuffer[1]=k&0x0f;
+ 119   3                 k=k>>4;
+ 120   3                 mybuffer[0]=k&0x0f;
+ 121   3                 disp8279();
+ 122   3         }else{
+ 123   3          TR0 = 0;
+ 124   3              KeyManage();
+ 125   3              KeyManageFlag = 0;
+ 126   3              if(mybuffer[4] != 0){
+ 127   4                  InitClock();
+ 128   4              }
+ 129   3         }
+ 130   2       }
+ 131   1       
+ 132   1      }
+ 133          
+ 134          void KeyFlag()interrupt 2 using 1
+ 135          {
+ 136   1              
+ 137   1              KeyManageFlag = 1;
+ 138   1              DA0832 = 0x80;
+ 139   1      }
+ 140          
+ 141          void Time()interrupt 1
+ 142          {
+ 143   1              TH0 = (8192-4607)/32;
+ 144   1              TL0 = (8192-4607)%32;
+ 145   1              counter++;
+ 146   1              if(counter == 200 && EndFlag == 0){
+ 147   2                     if(mybuffer[7] >= 0){
+ 148   3                             if(mybuffer[7] == 0){
+ 149   4                                         if(mybuffer[6] > 0){
+ 150   5                                             mybuffer[7] = 0x0F;
+ 151   5                                             mybuffer[6] -= 1;
+ 152   5                                         }
+ 153   4                                 }else{
+ 154   4                                     mybuffer[7] -= 1;
+ 155   4                                 }
+ 156   3                         }
+ 157   2                         counter = 0;
+ 158   2                         if(mybuffer[7] == 0 && mybuffer[6] == 0){
+ 159   3                             EndFlag = 1;
+ 160   3                         }
+ 161   2               }
+ 162   1               if(counter == 200 && EndFlag == 1){
+ 163   2                     if(mybuffer[5] >= 0){
+ 164   3                             if(mybuffer[5] == 0){
+ 165   4                                         if(mybuffer[4] > 0){
+ 166   5                                             mybuffer[5] = 0x0F;
+ 167   5                                             mybuffer[4] -= 1;
+ 168   5                                         }
+ 169   4                                 }else{
+ 170   4                                     mybuffer[5] -= 1;
+ 171   4                                 }
+ 172   3                         }
+ 173   2                         counter = 0;
+ 174   2                         if(mybuffer[5] == 0 && mybuffer[4] == 0){
+ 175   3                             EndFlag = 0;
+ 176   3                                 mybuffer[7] = End[0];
+ 177   3                                 mybuffer[6] = End[1];
+ 178   3                                 mybuffer[5] = Start[0];
+C51 COMPILER V6.23a  AD0809                                                                03/27/2017 21:15:48 PAGE 4   
+
+ 179   3                                 mybuffer[4] = Start[1];
+ 180   3                         }
+ 181   2               }
+ 182   1               disp8279();
+ 183   1      }
+ 184          
+ 185          void Time2()interrupt 3
+ 186          {
+ 187   1              TH1 = f & 0xFF00;
+ 188   1              TL1 = f & 0x00FF;
+ 189   1              Pdd = ~Pdd;
+ 190   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    594    ----
+   CONSTANT SIZE    =     40    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     26       1
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      1    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
